@@ -1,0 +1,19 @@
+Executing action: all (aliases: build)
+Running ninja in directory /Users/arthvm/www/fiap/challenge/ibeacon/build
+Executing "ninja all"...
+[1/4] cd /Users/arthvm/www/fiap/challenge/ibeacon/build && /Users/arthvm/.espressif/python_env/idf6.0_py3.14_env/bin/python /Users/arthvm/www/esp-idf/components/partition_table/check_sizes.py --offset 0x8000 partition --type app /Users/arthvm/www/fiap/challenge/ibeacon/build/partition_table/partition-table.bin /Users/arthvm/www/fiap/challenge/ibeacon/build/ibeacon.bin
+ibeacon.bin binary size 0xad3f0 bytes. Smallest app partition is 0x100000 bytes. 0x52c10 bytes (32%) free.
+[2/4] Performing build step for 'bootloader'
+[1/1] cd /Users/arthvm/www/fiap/challenge/ibeacon/build/bootloader && /Users/arthvm/.espressif/python_env/idf6.0_py3.14_env/bin/python /Users/arthvm/www/esp-idf/components/partition_table/check_sizes.py --offset 0x8000 bootloader 0x1000 /Users/arthvm/www/fiap/challenge/ibeacon/build/bootloader/bootloader.bin
+Bootloader binary size 0x66b0 bytes. 0x950 bytes (8%) free.
+[3/4] No install step for 'bootloader'
+[4/4] Completed 'bootloader'
+
+Project build complete. To flash, run:
+ idf.py flash
+or
+ idf.py -p PORT flash
+or
+ python -m esptool --chip esp32 -b 460800 --before default_reset --after hard_reset write_flash --flash_mode dio --flash_size 2MB --flash_freq 40m 0x1000 build/bootloader/bootloader.bin 0x8000 build/partition_table/partition-table.bin 0x10000 build/ibeacon.bin
+or from the "/Users/arthvm/www/fiap/challenge/ibeacon/build" directory
+ python -m esptool --chip esp32 -b 460800 --before default_reset --after hard_reset write_flash "@flash_args"
