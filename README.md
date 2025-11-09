@@ -6,11 +6,13 @@ Projeto de transmissor iBeacon usando ESP32 com framework ESP-IDF.
 
 Este projeto transforma uma ESP32 em um transmissor iBeacon, permitindo que o dispositivo seja detectado por aplicativos móveis compatíveis com a tecnologia iBeacon da Apple. O iBeacon utiliza Bluetooth Low Energy (BLE) para transmitir sinais de proximidade.
 
-**Configuração atual do iBeacon:**
+**Beacon padrão após o flash:**
 - **UUID:** `FDA50693-A4E2-4FB1-AFCF-C6EB07647825`
 - **Major:** 10167
 - **Minor:** 61958
 - **Measured Power:** -59 dBm (0xC5)
+
+> ⚠️ Esses valores são sobrescritos assim que o operador executa o comando `save` via CLI. Use-os apenas como referência inicial ou para gerar QR Codes de fábrica.
 
 ## 🔧 Pré-requisitos
 
@@ -125,6 +127,54 @@ idf.py -p <PORT> flash monitor
 
 Para sair do monitor, pressione `Ctrl + ]`.
 
+## 🔧 Provisionamento via CLI
+
+Depois de gravar o firmware, o ESP32 expõe um console serial simples para configurar `major` e `minor` sem recompilar o projeto. Basta abrir o monitor com o `idf.py` (ou qualquer terminal serial) e digitar os comandos abaixo:
+
+```
+ibeacon> help
+Available commands:
+  help                Show this message
+  show                Display current UUID/Major/Minor
+  set_major <value>   Set major (0-65535)
+  set_minor <value>   Set minor (0-65535)
+  save                Persist values and update advertising
+  blink <seconds>     Blink status LED to locate device
+  restart             Restart device
+```
+
+### Passo a passo sugerido
+
+1. Conecte o ESP32 e abra o monitor (ex.: `idf.py -p /dev/cu.usbserial-0001 monitor`).
+2. Execute `show` para conferir os parâmetros atuais.
+3. Defina novos valores conforme a planilha/catalog de beacons:
+    ```
+    set_major 22015
+    set_minor 1234
+    ```
+4. Salve e aplique imediatamente:
+    ```
+    save
+    ```
+    O firmware grava na NVS, atualiza o pacote iBeacon em tempo real e imprime os valores efetivos.
+5. (Opcional) Acione o LED para identificar fisicamente o dispositivo:
+    ```
+    blink 5
+    ```
+6. Finalize com `show` novamente para registrar os números no inventário.
+
+> 💡 O comando `save` é o único que persiste as mudanças. Se você apenas usar `set_major/set_minor` e desligar a placa, os valores serão perdidos.
+
+### Payload padrão para QR de fábrica
+
+Antes de qualquer personalização, todos os ESPs recém-flashados anunciam:
+
+```json
+{"uuid":"FDA50693-A4E2-4FB1-AFCF-C6EB07647825","major":10167,"minor":61958}
+```
+
+Use esse JSON para gerar um QR Code “genérico” se precisar identificar unidades ainda não provisionadas.
+
 ## 📱 Verificando o iBeacon
 
 ### Opção 1: Aplicativos iOS
@@ -136,6 +186,11 @@ Para sair do monitor, pressione `Ctrl + ]`.
 - **Beacon Scanner** (gratuito)
 
 ## ⚙️ Personalização
+
+Agora existem duas formas de alterar os identificadores:
+
+1. **Via CLI (recomendado em campo):** use os comandos `set_major`, `set_minor` e `save`, conforme descrito na seção anterior.
+2. **Via código (para builds customizados):** edite as constantes abaixo e reconstrua o firmware.
 
 ### Modificar UUID, Major e Minor
 
@@ -160,6 +215,8 @@ Após modificar, recompile e grave novamente:
 ```bash
 idf.py build flash
 ```
+
+> 🔁 Mesmo após recompilar, você ainda pode sobrescrever os valores com a CLI sem reflashear o dispositivo. Essa flexibilidade facilita reutilizar o hardware em diferentes yards.
 
 ### Ajustar Intervalo de Transmissão
 
@@ -192,6 +249,25 @@ I (XXX) IBEACON: UUID: FDA50693-A4E2-4FB1-AFCF-C6EB07647825
 I (XXX) IBEACON: Major: 10167, Minor: 61958
 I (XXX) IBEACON: iBeacon running. The device is now trasmitting.
 ```
+
+## 🏷️ Gerando e usando QR Codes
+
+Para simplificar o check-in da moto, você pode colar uma etiqueta com QR na carcaça do beacon. O QR deve conter o trio `uuid/major/minor` no formato JSON — o mesmo payload usado pela API ou pelo app móvel.
+
+### Fluxo sugerido
+
+1. **Planilha de inventário:** mantenha um arquivo (por exemplo, `beacon_inventory.csv`) com colunas `BeaconCode`, `Major`, `Minor`, `QRPayload`, etc.
+2. **Provisionamento:** durante a configuração via CLI, atualize a planilha com os valores efetivos e gere o JSON:
+    ```json
+    {"uuid":"FDA50693-A4E2-4FB1-AFCF-C6EB07647825","major":22015,"minor":1234}
+    ```
+3. **Geração de QR:** use uma das abordagens abaixo:
+    - **Google Sheets:** `=IMAGE("https://quickchart.io/qr?text=" & ENCODEURL(K2))`
+    - **Script Python (qrcode):** converta cada linha do CSV em um PNG para impressão.
+    - **Impressora térmica (ZPL):** envie o payload direto para fabricação de etiquetas.
+4. **Instalação em campo:** prenda o beacon na moto, cole a etiqueta com o QR e registre a associação no aplicativo.
+
+Quando o operador lê o QR durante o check-in, o app já sabe exatamente qual iBeacon filtrar, evitando erros de digitação e facilitando auditorias futuras.
 
 ## 📚 Referências
 
